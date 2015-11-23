@@ -5,56 +5,58 @@ import os
 import sys
 from os.path import join as jp
 
+
 class filter():
-    def __init__(self, targetName, svType, descriptions) :
+    def __init__(self, targetName, svType, descriptions):
         self.name = targetName
         self.type = svType
         self.descriptions = descriptions.split('|')
 
-    def check_rec(self, rec) :
+    def check_rec(self, rec):
         filterCheck = (rec.type == self.type) and (rec.targetName.find(self.name) > -1)
         descMatch = False
-        if self.descriptions[0] != '*' :
-            for desc in self.descriptions :
-                if rec.svDescription :
+        if self.descriptions[0] != '*':
+            for desc in self.descriptions:
+                if rec.svDescription:
                     descMatch = descMatch or rec.svDescription.find(desc) > -1
-        else :
+        else:
             descMatch = True
 
         return (filterCheck and descMatch)
 
-class filters() :
-    def __init__(self, filterFn) :
+
+class filters():
+    def __init__(self, filterFn):
         self.filterFn = filterFn
         self.filters = []
         self.setup()
 
-    def setup(self) :
-        filterF = open(filterFn, 'r') 
-        for line in filterF.readlines() :
+    def setup(self):
+        filterF = open(filterFn, 'r')
+        for line in filterF.readlines():
             line = line.strip()
             targetName, svType, descriptions = line.split(" ")
             self.filters.append(filter(targetName, svType, descriptions))
 
-    def check_rec(self, rec) :
+    def check_rec(self, rec):
         filterCheck = False
-        for filter in self.filters :
+        for filter in self.filters:
             filterCheck = filterCheck or filter.check_rec(rec)
 
         keepIndel = True
-        if rec.type == "indel" :
+        if rec.type == "indel":
             #print rec.values
-            #print rec.segments[0].annoVals, abs(int(rec.segments[0].annoVals['exon'][1])) 
+            #print rec.segments[0].annoVals, abs(int(rec.segments[0].annoVals['exon'][1]))
             #print rec.svDescription, rec.svDescription.find(',')
-            if abs(int(rec.segments[0].annoVals['exon'][1])) > 0 and rec.svDescription.find(',') == -1 :
-                keepIndel = False    
+            if abs(int(rec.segments[0].annoVals['exon'][1])) > 0 and rec.svDescription.find(',') == -1:
+                keepIndel = False  
             #print keepIndel
 
         return filterCheck or (not keepIndel)
 
 
-class segment() :
-    def __init__(self, recId, segId, svType, geneName, brkpt, svDescription, cigar, mm, strand, alignMetrics, srCount, covCount) :
+class segment():
+    def __init__(self, recId, segId, svType, geneName, brkpt, svDescription, cigar, mm, strand, alignMetrics, srCount, covCount):
         self.recId = recId
         self.segId = segId
         self.svType = svType
@@ -71,10 +73,10 @@ class segment() :
         self.srCount = srCount
         self.covCount = covCount
         self.annoVals = None
-        if self.svType.find("rearr") > -1 :
+        if self.svType.find("rearr") > -1:
             self.uniqAlign = alignMetrics.split(":")[2]
 
-    def get_meta_vals(self) :
+    def get_meta_vals(self):
         # Segment meta values encode the annotation and realigment values
         # s1=chr+cytoband:bp:gene_name:distance:strand:repeat_overlap:uniq_align_metric, s2=...
         segId = 'seg' + str(self.segId+1)
@@ -82,18 +84,18 @@ class segment() :
         segVals = [segId+'='+segLoc, self.bp]
         geneVals = ''
         geneGeneStatus = 'gene-gene'
-        if 'cluster' in self.annoVals :
+        if 'cluster' in self.annoVals:
             geneVals += ":".join(self.annoVals['cluster'])
             segGeneNames = self.annoVals['cluster'][0]
             geneGeneStatus = 'gene-gene'
-        else :
-            if abs(self.annoVals['gene_up'][1]) > 0 :
+        else:
+            if abs(self.annoVals['gene_up'][1]) > 0:
                 # Segment lands in another gene
                 geneVals += ":".join([str(x) for x in self.annoVals['gene_up']])
                 geneVals += '|' + ":".join([str(x) for x in self.annoVals['gene_down']])
                 segGeneNames = "|".join([self.annoVals['gene_up'][0], self.annoVals['gene_down'][0]])
                 geneGeneStatus = 'gene-intergenic'
-            else :
+            else:
                 geneVals += ":".join([str(x) for x in self.annoVals['gene_up']])
                 segGeneNames = self.annoVals['gene_up'][0]
                 geneGeneStatus = 'gene-gene'
@@ -102,20 +104,21 @@ class segment() :
         segVals.append(self.uniqAlign)
         return segVals, segGeneNames, geneGeneStatus
 
-    def get_gene_name(self) :
+    def get_gene_name(self):
         geneName = ''
-        if 'cluster' in self.annoVals :
+        if 'cluster' in self.annoVals:
             geneName = self.annoVals['cluster'][0]
-        else :
-            if abs(self.annoVals['gene_up'][1]) > 0 :
+        else:
+            if abs(self.annoVals['gene_up'][1]) > 0:
                 # Segment lands in another gene
                 geneName = "|".join([self.annoVals['gene_up'][0], self.annoVals['gene_down'][0]])
-            else :
+            else:
                 geneName = self.annoVals['gene_up'][0]
         return geneName
 
-class breakmerRec() :
-    def __init__(self, subProjId, sampleId, recIter, values) :
+
+class breakmerRec():
+    def __init__(self, subProjId, sampleId, recIter, values):
         '''
         1. genes - comma-delimited list
         2. target_breakpoints - comma delimited list
@@ -153,38 +156,38 @@ class breakmerRec() :
         self.svDescription = None
         self.format_results()
 
-    def get_target_name(self) :
+    def get_target_name(self):
         # Suffers from annotation issue, if breakpoint lands outside of any
         # target capture regions it won't hit any of the target regions and
         # therefore will not have a target name associated.
         # For now this function is deprecated
         tName = ''
-        for seg in self.segments :
-            if 'target' in seg.annoVals :
+        for seg in self.segments:
+            if 'target' in seg.annoVals:
                 tName = seg.annoVals['target'][0]
         return tName
 
-    def get_cytobands(self) :
+    def get_cytobands(self):
         cytoNames = []
-        for seg in self.segments :
+        for seg in self.segments:
             cytoNames.append(seg.annoVals['cyto'][0])
         return ','.join(cytoNames)
 
-    def format_trl_str(self) :
+    def format_trl_str(self):
         outStr = ''
         chrs = []
         bands = []
-        for seg in self.segments :
+        for seg in self.segments:
             chrs.append(seg.chr)
             bands.append(seg.annoVals['cyto'][0])
         outStr = 't(' + ';'.join(chrs) + ')(' + ';'.join(bands) + ')'
         return outStr
 
-    def get_segment_meta(self) :
+    def get_segment_meta(self):
         segMeta = []
         segGeneNames = []
         geneGeneStatus = ''
-        for seg in self.segments :
+        for seg in self.segments:
             segVals, geneNames, geneGeneStatus = seg.get_meta_vals()
             segGeneNames.append(geneNames)
             '''
@@ -193,19 +196,19 @@ class breakmerRec() :
             segVals = ['seg' + str(seg.segId+1) + '=' + seg.chr + seg.annoVals['cyto'][0], seg.bp]
             geneVals = ''
             geneGeneStatus = 'gene-gene'
-            if 'cluster' in seg.annoVals :
+            if 'cluster' in seg.annoVals:
                 print seg.annoVals['cluster']
                 geneVals += ":".join(seg.annoVals['cluster'])
                 segGeneNames.append(seg.annoVals['cluster'][0])
                 geneGeneStatus = 'gene-gene'
-            else :
-                if abs(seg.annoVals['gene_up'][1]) > 0 :
+            else:
+                if abs(seg.annoVals['gene_up'][1]) > 0:
                     # Segment lands in another gene
                     geneVals += ":".join([str(x) for x in seg.annoVals['gene_up']])
                     geneVals += '|' + ":".join([str(x) for x in seg.annoVals['gene_down']])
                     segGeneNames.append("|".join([seg.annoVals['gene_up'][0], seg.annoVals['gene_down'][0]]))
                     geneGeneStatus = 'gene-intergenic'
-                else :
+                else:
                     geneVals += ":".join([str(x) for x in seg.annoVals['gene_up']])
                     segGeneNames.append(seg.annoVals['gene_up'][0])
                     geneGeneStatus = 'gene-gene'
@@ -238,7 +241,7 @@ class breakmerRec() :
         targetLink = "\t".join(['hs' + targetSeg[0].chr.replace('chr',''), targetBp, targetBp])
         links = []
         anno = ["\t".join(['hs' + targetSeg[0].chr.replace('chr',''), targetBp, targetBp, self.targetName])]
-        for seg in self.segments :
+        for seg in self.segments:
             if targetSeg[0] == seg:
                 continue
             bp = seg.bp
@@ -249,24 +252,24 @@ class breakmerRec() :
         return links, anno 
 
     '''
-    def get_trl_partner_genes(self) :
+    def get_trl_partner_genes(self):
         partnerGeneVals = []
         partnerGeneNames = []
-        for seg in self.segments :
+        for seg in self.segments:
             segVals = []
             # Segment is outside of target region
             segVals.append(seg.chr + seg.annoVals['cyto'][0])
             geneVals = ''
-            if 'cluster' in seg.annoVals :
+            if 'cluster' in seg.annoVals:
                 geneVals += ":".join(seg.annoVals['cluster']) 
                 partnerGeneNames.append(seg.annoVals['cluster'][0])
             else:
-                if abs(seg.annoVals['gene_up'][1]) > 0 :
+                if abs(seg.annoVals['gene_up'][1]) > 0:
                     # Segment lands in another gene
                     geneVals += ":".join([str(x) for x in seg.annoVals['gene_up']])
                     geneVals += '|' + ":".join([str(x) for x in seg.annoVals['gene_down']])
                     partnerGeneNames.append("|".join([seg.annoVals['gene_up'][0], seg.annoVals['gene_down'][0]]))
-                else :
+                else:
                     geneVals += ":".join([str(x) for x in seg.annoVals['gene_up']])
                     partnerGeneNames.append(seg.annoVals['gene_up'][0])
             segVals.append(geneVals)
@@ -275,31 +278,31 @@ class breakmerRec() :
         return ",".join(partnerGeneVals), ','.join(partnerGeneNames)
     '''
 
-    def get_segment_strands(self) :
+    def get_segment_strands(self):
         strands = []
-        for seg in self.segments :
+        for seg in self.segments:
             strands.append(seg.strand)
         return ','.join(strands)
 
-    def get_segment_brkpts(self) :
+    def get_segment_brkpts(self):
         brkpts = []
-        for seg in self.segments :
+        for seg in self.segments:
             brkpts.append(seg.chr + ':' + seg.bp)
         return ','.join(brkpts)
 
-    def filter_result(self, filterList) :
+    def filter_result(self, filterList):
         filter = False
         primaryChrs = ['chr' + str(x) for x in range(1,23)] + ['chrX', 'chrY']
         # check if non-primary chromosomes
-        for seg in self.segments :
-            if seg.chr not in primaryChrs :
+        for seg in self.segments:
+            if seg.chr not in primaryChrs:
                 filter = True
                 break
         filter = filter or filterList.check_rec(self)
         return filter
 
         '''
-        if self.type == 'indel' :
+        if self.type == 'indel':
             aurka_indel = self.targetName == 'AURKA' and self.svDescription == '(I61)'
             aurkc_indel = self.targetName == 'AURKC' and self.svDescription == '(D14,I1)'
             notch2_indel = self.targetName == 'NOTCH2' and self.svDescription == '(I20)'
@@ -307,35 +310,35 @@ class breakmerRec() :
             ptprd_indel = self.targetName == 'PTPRD' and self.svDescription == '(I21)'
             hla_indel = self.targetName.find('HLA') > - 1
 
-            if aurka_indel or aurkc_indel or notch2_indel or flt4_indel or ptprd_indel or hla_indel :
+            if aurka_indel or aurkc_indel or notch2_indel or flt4_indel or ptprd_indel or hla_indel:
                 filter = True
         return filter
         '''
 
-    def get_rep_overlaps(self) :
+    def get_rep_overlaps(self):
         repOverlaps = []
-        for seg in self.segments :
+        for seg in self.segments:
             repOverlaps.append(float(seg.repOverlap))
         return repOverlaps
 
-    def get_uniq_align(self) :
+    def get_uniq_align(self):
         uniqAligns = []
-        for seg in self.segments :
+        for seg in self.segments:
             uniqAligns.append(float(seg.uniqAlign))
         return uniqAligns
 
-    def get_report(self, filterList) :
+    def get_report(self, filterList):
 #        targetGeneName = self.get_target_name()
         cytoBands = self.get_cytobands()
         descStr = ''
         segMeta = '' 
         segGenes = ''
-        if self.type.find('rearr') > -1 :
+        if self.type.find('rearr') > -1:
             descStr = self.format_trl_str()
             self.svDescription = descStr
             # geneMeta, geneList = self.get_trl_partner_genes()
             segMeta, segGenes, geneGeneStatus = self.get_segment_meta()
-        elif self.type == 'indel' :
+        elif self.type == 'indel':
             descStr = self.svDescription
             segMeta = self.segments[0].chr + self.segments[0].annoVals['cyto'][0] + ':' + self.segments[0].bp
             geneGeneStatus = 'NA'
@@ -346,11 +349,11 @@ class breakmerRec() :
         brkpts = self.get_segment_brkpts()
         recKey = self.targetName + '|' + descStr + '|' + brkpts
 
-        if self.filter_result(filterList) :
+        if self.filter_result(filterList):
             lout.append('filtered')
 
         circosVals = {'links':[], 'annos':[]}
-        if self.type == 'rearrangement' :
+        if self.type == 'rearrangement':
             links, anno = self.get_circos_vals()
             if links and anno:
                 circosVals['links'] = links
@@ -359,7 +362,7 @@ class breakmerRec() :
         
         return lout, recKey, circosVals
 
-    def get_all_dataframe(self, filterList) :
+    def get_all_dataframe(self, filterList):
         cytoBands = self.get_cytobands()
         descStr = ''
         segMeta = '' 
@@ -368,14 +371,14 @@ class breakmerRec() :
         minUniqAlign = 'NA'
         maxRepOverlap = 'NA'
 
-        if self.type.find('rearr') > -1 :
+        if self.type.find('rearr') > -1:
             descStr = self.format_trl_str()
             self.svDescription = descStr
             segMeta, segGenes, geneGeneStatus = self.get_segment_meta()
             maxUniqAlign = max(self.get_uniq_align())
             minUniqAlign = min(self.get_uniq_align())
             maxRepOverlap = max(self.get_rep_overlaps())
-        elif self.type == 'indel' :
+        elif self.type == 'indel':
             descStr = self.svDescription
             descStr = descStr.lstrip('(')
             descStr = descStr.rstrip(')')
@@ -383,51 +386,51 @@ class breakmerRec() :
         lout = None
         recKey = None
 
-        if not self.filter_result(filterList) :
+        if not self.filter_result(filterList):
             lout = [self.subProjId, self.sampleId, self.type, descStr, self.get_segment_strands(), self.targetName, segGenes, max(self.splitReadCounts), max(self.discReadCounts), max(self.coverages), maxRepOverlap, maxUniqAlign, minUniqAlign, len(self.contigSeq)]
             brkpts = self.get_segment_brkpts()
             recKey = self.targetName + '|' + descStr + '|' + brkpts
             lout = "\t".join([str(x) for x in lout])
         return lout, recKey
 
-    def format_results(self) :
+    def format_results(self):
         if self.targetName == 'MLL':
             self.targetName = 'KMT2A'
         if self.targetName == 'MLL3':
             self.targetName = 'KMT2C'
         genes = self.genes
-        if self.type.find("rearr") > -1 :
+        if self.type.find("rearr") > -1:
             self.brks = self.brks[0].split(",")
-            if len(self.genes) != len(self.brks) :
+            if len(self.genes) != len(self.brks):
                 genes = [self.genes] * len(self.brks)
-        else :
+        else:
             self.brks[0], self.svDescription = self.brks[0].split(' ')
             self.svDescription = self.svDescription.lstrip('(').rstrip(')')
-        for i in range(len(self.brks)) :
+        for i in range(len(self.brks)):
             self.segments.append(segment(self.recId, i, self.type, genes[i], self.brks[i], self.svDescription, self.cigars[i], self.mismatches[i], self.strands[i], self.repOverlapSegLens[i], self.splitReadCounts[i], self.coverages[i]))
 
-    def write_brkpt_bed(self, fbed) :
-        for segment in self.segments :
+    def write_brkpt_bed(self, fbed):
+        for segment in self.segments:
             bedline = [segment.chr]
             bp1 = ''
             bp2 = ''
-            if segment.bp.find('-') > -1 : 
-                bp1,bp2 = segment.bp.split('-')
-            else :
+            if segment.bp.find('-') > -1:
+                bp1, bp2 = segment.bp.split('-')
+            else:
                 bp1 = int(segment.bp) - 1
                 bp2 = int(segment.bp) + 1
-            if bp1 > bp2 : 
+            if bp1 > bp2:
                 tmp = bp1
                 bp1 = bp2
                 bp2 = tmp
-            bedline.extend([bp1, bp2, self.sampleId + ":" + segment.recId+":s"+str(segment.segId), '0', segment.strand])
+            bedline.extend([bp1, bp2, self.sampleId + ":" + segment.recId + ":s" + str(segment.segId), '0', segment.strand])
             fbed.write("\t".join([str(x) for x in bedline]) + "\n")
 
-#------------------------------------------------------------------------------
-def process_res(subProjId, sampleId, fin, resD, recIter) :
+
+def process_res(subProjId, sampleId, fin, resD, recIter):
     res = open(fin, 'rU')
     resLines = res.readlines()[1:]
-    for line in resLines :
+    for line in resLines:
         line = line.strip()
         linesplit = line.split("\t")
         bRec = breakmerRec(subProjId, sampleId, recIter, linesplit)
@@ -435,34 +438,34 @@ def process_res(subProjId, sampleId, fin, resD, recIter) :
         recIter += 1
     return recIter
 
-#------------------------------------------------------------------------------
-def process_bed_anno(f, d, tag) :
+
+def process_bed_anno(f, d, tag):
     '''
     chr1    2493182 2493215 B1448_s0    0   +   chr1    2493111 2493254 TNFRSF14    exon    33
     chr1    11300368    11300370    B5258_s1    0   +   chr1    11300359    11300604    MTOR    exon    2
     chr1    11850950    11850951    B912_s0 0   +   chr1    11850736    11850955    MTHFR   exon    1
     '''
-    for line in open(f, 'r').readlines() :
+    for line in open(f, 'r').readlines():
         line = line.strip()
         linesplit = line.split('\t')
         sampleId, brkptId, segId = linesplit[3].split(":")
         overlapId = linesplit[9]
         metaVals = [None, None]
-        if tag == 'target' :
+        if tag == 'target':
             metaVals[0] = linesplit[10]
-        elif tag == 'cluster' :
+        elif tag == 'cluster':
             metaVals[0] = '0'
             metaVals[1] = linesplit[11]
-        elif tag.find('gene') > -1 :
+        elif tag.find('gene') > -1:
             metaVals[0] = int(linesplit[-1])
             metaVals[1] = linesplit[11]
             # print 'gene', linesplit[11], linesplit[-1]
-        elif tag == 'exon' :
+        elif tag == 'exon':
             metaVals[0] = linesplit[-1]
             metaVals[1] = linesplit[11]
 
         key = ":".join([sampleId, brkptId, segId])
-        if key not in d :
+        if key not in d:
             d[key] = {}
         if tag not in d[key]:
             v = [overlapId] + metaVals 
@@ -471,75 +474,88 @@ def process_bed_anno(f, d, tag) :
             else:
                 d[key][tag] = v
         else:
-            if tag.find('gene') > -1 :
+            if tag.find('gene') > -1:
                 d[key][tag].append([overlapId] + metaVals)
     return d
 
-#------------------------------------------------------------------------------
-def annotate_recs(resD, annoDictFs) :
+
+def annotate_recs(resD, annoDictFs):
     annoIndx = {}
-    for item in annoDictFs :
+    for item in annoDictFs:
         annoIndx = process_bed_anno(annoDictFs[item], annoIndx, item)
 
-    for key in annoIndx :
+    for key in annoIndx:
         sampleId, brkptId, segId = key.split(":")
         annoVals = annoIndx[key]
-        rec = resD[sampleId]['recs'][int(brkptId.lstrip('B'))-1]
+        rec = resD[sampleId]['recs'][int(brkptId.lstrip('B')) - 1]
         seg = rec.segments[int(segId.lstrip('s'))]
         seg.annoVals = annoVals
         # Select only one annotated gene if there are two or more.
-        # This is for instances where the target region is not 
+        # This is for instances where the target region is not
         # designated.
 
-        if len(seg.annoVals['gene_up']) > 1 :
-            for vals in seg.annoVals['gene_up'] :
-                if vals[0] == rec.targetName :
+        if len(seg.annoVals['gene_up']) > 1:
+            for vals in seg.annoVals['gene_up']:
+                if vals[0] == rec.targetName:
                     seg.annoVals['gene_up'] = vals
                     break
         if seg.annoVals['gene_up'][0].__class__ == list:
             seg.annoVals['gene_up'] = seg.annoVals['gene_up'][0]
 
-        if len(seg.annoVals['gene_down']) > 1 :
-            for vals in seg.annoVals['gene_down'] :
-                if vals[0] == rec.targetName :
+        if len(seg.annoVals['gene_down']) > 1:
+            for vals in seg.annoVals['gene_down']:
+                if vals[0] == rec.targetName:
                     seg.annoVals['gene_down'] = vals
                     break
         if seg.annoVals['gene_down'][0].__class__ == list:
             seg.annoVals['gene_down'] = seg.annoVals['gene_down'][0]
 
 
-#------------------------------------------------------------------------------
-def report_df(resD, fout, filterList) :
+def report_df(resD, fout, filterList):
     '''
     '''
-    header = ['subprojectid','sampleid', 'rearr_type', 'event_desc', 'realign_strands', 'target_name', 'gene_list', 'max_splitread_counts', 'max_discread_counts', 'max_read_coverage', 'max_repeat_overlap', 'max_uniq_align', 'min_uniq_align', 'len_contig']
+    header = ['subprojectid',
+              'sampleid',
+              'rearr_type',
+              'event_desc',
+              'realign_strands',
+              'target_name',
+              'gene_list',
+              'max_splitread_counts',
+              'max_discread_counts',
+              'max_read_coverage',
+              'max_repeat_overlap',
+              'max_uniq_align',
+              'min_uniq_align',
+              'len_contig']
+
     fout.write("\t".join(header) + "\n")
-    for sid in resD :
+    for sid in resD:
         recs = resD[sid]['recs']
         recStor = {}
         nsampleRecs = 0
-        for rec in recs :
+        for rec in recs:
             recData, recKey = rec.get_all_dataframe(filterList)
-            if recData :
-                if recKey not in recStor :
+            if recData:
+                if recKey not in recStor:
                     # Store the key to eliminate duplicate calls
                     recStor[recKey] = recData
                     fout.write(recData + "\n")
                     nsampleRecs += 1
-        if nsampleRecs == 0 :
-            lout = resD[sid]['values'] + ['NA']*(len(header)-2)
+        if nsampleRecs == 0:
+            lout = resD[sid]['values'] + ['NA'] * (len(header) - 2)
             fout.write("\t".join(lout) + "\n")
     fout.close()
-#------------------------------------------------------------------------------
 
-def add_circos_values(circosValues, circosVals) :
+
+def add_circos_values(circosValues, circosVals):
     circosValues['links'].extend(circosVals['links'])
-    for anno in circosVals['annos'] :
-        if anno not in circosValues['annos'] :
+    for anno in circosVals['annos']:
+        if anno not in circosValues['annos']:
             circosValues['annos'].append(anno)
 
-#------------------------------------------------------------------------------
-def report(resD, fileDict, filterList) :
+
+def report(resD, fileDict, filterList):
     '''
     '''
 
@@ -553,50 +569,50 @@ def report(resD, fileDict, filterList) :
 
     reportOut = fileDict['report']
     filteredOut = fileDict['filtered']
-    sampleOut = fileDict['sample']
-    targetOut = fileDict['target']
+    # sampleOut = fileDict['sample']
+    # targetOut = fileDict['target']
     circosLinkOut = fileDict['link']
     circosAnnoOut = fileDict['anno']
 
     reportOut.write("\t".join(header) + "\n")
     filteredOut.write("\t".join(header) + "\n")
 
-    circosValues = {'links':[], 'annos':[]}
-    summary_values = {'nsamples':0, 'type_counts':{}, 'samples_with_event':[]}
-    for sid in resD :
+    circosValues = {'links': [], 'annos': []}
+    summary_values = {'nsamples': 0, 'type_counts': {}, 'samples_with_event': []}
+    for sid in resD:
         summary_values['nsamples'] += 1
         recs = resD[sid]['recs']
         recStor = {}
         nsample_recs = 0
-        for rec in recs :
+        for rec in recs:
             recReport, recKey, circosVals = rec.get_report(filterList)
-            if recKey not in recStor :
+            if recKey not in recStor:
                 # Store the key to eliminate duplicate calls
                 recStor[recKey] = recReport
-                if recReport.find('filtered') == -1 :
+                if recReport.find('filtered') == -1:
                     reportOut.write(recReport + "\n")
                     add_circos_values(circosValues, circosVals)
                     if rec.type not in summary_values['type_counts']:
                         summary_values['type_counts'][rec.type] = 0
                     summary_values['type_counts'][rec.type] += 1
-                    if sid not in summary_values['samples_with_event'] :
+                    if sid not in summary_values['samples_with_event']:
                         summary_values['samples_with_event'].append(sid)
                     nsample_recs += 1
-                else :
+                else:
                     filteredOut.write(recReport + "\n")
-        if nsample_recs == 0 :
+        if nsample_recs == 0:
             reportOut.write('\t'.join(resD[sid]['values']) + "\n")
         # print sid, len(recs), nsample_recs
-    for item in legend :
+    for item in legend:
         reportOut.write(item + ': ' + legend[item] + "\n")
 
-    for item in summary_values :
-        if item == 'nsamples' :
+    for item in summary_values:
+        if item == 'nsamples':
             print 'Number of samples:', summary_values[item]
-        elif item == 'type_counts' :
-            for type in summary_values[item] :
+        elif item == 'type_counts':
+            for type in summary_values[item]:
                 print 'Number of', type, 'events:', summary_values[item][type]
-        elif item == 'samples_with_event' :
+        elif item == 'samples_with_event':
             print 'Number of samples with event:', len(summary_values['samples_with_event'])
 
     for link in circosValues['links']:
@@ -606,44 +622,42 @@ def report(resD, fileDict, filterList) :
 
     reportOut.close()
     filteredOut.close()
-#------------------------------------------------------------------------------
 
-#------------------------------------------------------------------------------
-def collapse_bed(targetBedFn) :
+
+def collapse_bed(targetBedFn):
     collapsedBedPath = os.path.dirname(targetBedFn)
     fn = os.path.basename(targetBedFn).split('.bed')[0]
     collapsedBedFn = os.path.join(collapsedBedPath, fn + '.collapsed.bed')
     newBed = open(collapsedBedFn, 'w')
 
     geneRegion = [None, None, None, None]
-    for line in open(targetBedFn, 'r').readlines() :
+    for line in open(targetBedFn, 'r').readlines():
         line = line.strip()
         linesplit = line.split("\t")
         chr, start, stop, name, feature = linesplit
-        if not geneRegion[3] :
+        if not geneRegion[3]:
             geneRegion = [chr, int(start), int(stop), name]
-        elif name != geneRegion[3] :
+        elif name != geneRegion[3]:
             newBed.write("\t".join([str(x) for x in geneRegion]) + "\n")
             geneRegion = [chr, int(start), int(stop), name]
-        else :
-            if int(start) < geneRegion[1] :
+        else:
+            if int(start) < geneRegion[1]:
                 geneRegion[1] = int(start)
-            if int(stop) > geneRegion[2] :
+            if int(stop) > geneRegion[2]:
                 geneRegion[2] = int(stop)
     newBed.write("\t".join([str(x) for x in geneRegion]) + "\n")
     newBed.close()
-#------------------------------------------------------------------------------
 
-#------------------------------------------------------------------------------
-def run_bedtools(brkptBedFn) :
+
+def run_bedtools(brkptBedFn):
     cytoBandBedFn = '/data/ccgd/reference/human/refseq/GRCh37/annotation/bed/cytoBandIdeo.primary_chrs.bed'
     geneAnnoBedFn = '/data/ccgd/reference/human/refseq/GRCh37/annotation/bed/refseq_refFlat.bed'
     canonTrxAnnoBedFn = '/data/ccgd/reference/human/ensembl/GRCh37/annotation/bed/ensembl_GRCh37_canon_trx_anno.v75.primary_chrs.sorted.bed'
-    targetBedFn = '/data/ccgd/breakmer/ccgd_projects/panel_beds/P50.bed'
-    clusterRegionBedFn = '/data/ccgd/breakmer/ccgd_projects/panel_beds/cluster_regions.bed'
+    # targetBedFn = '/data/ccgd/breakmer/ccgd_projects/panel_beds/P50.bed'
+    clusterRegionBedFn = '/ifs/rcgroups/ccgd/hg19/cluster_regions.bed'
     targetCollapsedBedFn = collapse_bed(targetBedFn)
 
-    brkptTrgtAnno = 'brkpt_target_anno.bed'
+    # brkptTrgtAnno = 'brkpt_target_anno.bed'
     brkptGeneAnnoUp = 'brkpt_gene_anno_upstream.bed'
     brkptGeneAnnoDown = 'brkpt_gene_anno_downstream.bed'
     brkptCytoBand = 'brkpt_cytoband_anno.bed'
@@ -654,93 +668,94 @@ def run_bedtools(brkptBedFn) :
     annoDict = {'target': brkptTrgtAnno, 'gene_int': brkptGeneAnnoIntersect, 'gene_up': brkptGeneAnnoUp, 'gene_down': brkptGeneAnnoDown, 'cyto': brkptCytoBand, 'exon': brkptExonAnnoIntersect, 'cluster': brkptClusterAnnoIntersect}
 
     # Identify segments that overlap the targeted regions
-    cmd = 'sort -k1,1 -k2,2n %s | bedtools intersect -wo -a - -b %s > %s' % (brkptBedFn, targetBedFn, 'brkpt_target_anno.bed')
-    os.system(cmd)
+    # cmd = 'sort -k1,1 -k2,2n %s | bedtools intersect -wo -a - -b %s > %s' % (brkptBedFn, targetBedFn, 'brkpt_target_anno.bed')
+    # os.system(cmd)
+
     # Intersect with gene annotation bed file
     cmd = 'sort -k1,1 -k2,2n %s | bedtools intersect -wo -a - -b %s > %s' % (brkptBedFn, geneAnnoBedFn, 'brkpt_gene_anno_intersect.bed')
     os.system(cmd)
+
     # Bedtools upstream genes
-    cmd = 'sort -k1,1 -k2,2n %s | bedtools closest -D a -id -a - -b %s > %s' % (brkptBedFn, geneAnnoBedFn, 'brkpt_gene_anno_upstream.bed') 
-    os.system(cmd)
-    # Bedtools downstream genes
-    cmd = 'sort -k1,1 -k2,2n %s | bedtools closest -D a -iu -a - -b %s > %s' % (brkptBedFn, geneAnnoBedFn, 'brkpt_gene_anno_downstream.bed') 
-    os.system(cmd)
-    # Cytoband 
-    cmd = 'sort -k1,1 -k2,2n %s | bedtools closest -a - -b %s > %s' % (brkptBedFn, cytoBandBedFn, 'brkpt_cytoband_anno.bed') 
+    cmd = 'sort -k1,1 -k2,2n %s | bedtools closest -D a -id -a - -b %s > %s' % (brkptBedFn, geneAnnoBedFn, 'brkpt_gene_anno_upstream.bed')
     os.system(cmd)
 
-    # Cluster regions 
-    cmd = 'sort -k1,1 -k2,2n %s | bedtools intersect -wo -a - -b %s > %s' % (brkptBedFn, clusterRegionBedFn, 'brkpt_cluster_anno_intersect.bed') 
+    # Bedtools downstream genes
+    cmd = 'sort -k1,1 -k2,2n %s | bedtools closest -D a -iu -a - -b %s > %s' % (brkptBedFn, geneAnnoBedFn, 'brkpt_gene_anno_downstream.bed')
+    os.system(cmd)
+
+    # Cytoband
+    cmd = 'sort -k1,1 -k2,2n %s | bedtools closest -a - -b %s > %s' % (brkptBedFn, cytoBandBedFn, 'brkpt_cytoband_anno.bed')
+    os.system(cmd)
+
+    # Cluster regions
+    cmd = 'sort -k1,1 -k2,2n %s | bedtools intersect -wo -a - -b %s > %s' % (brkptBedFn, clusterRegionBedFn, 'brkpt_cluster_anno_intersect.bed')
     os.system(cmd)
 
     # Intersect with Ensembl canonical trxs
     cmd = 'sort -k1,1 -k2,2n %s | bedtools closest -D a -a - -b %s > %s' % (brkptBedFn, canonTrxAnnoBedFn, 'brkpt_exon_anno_intersect.bed')
     os.system(cmd)
     return annoDict
-#------------------------------------------------------------------------------
 
-def format_results(sampleListFn, sampleType, filterList) :
+
+def format_results(sampleListFn, sampleType, filterList):
     resD = {}
-    for line in open(sampleListFn, 'rU') :
+    for line in open(sampleListFn, 'rU'):
         line = line.strip()
         subProjId, sampleId = line.split("\t")
         outFs = glob(jp(resultsDir, sampleId + '*svs.out'))
-        resD[sampleId] = {'recs':[], 'values':[]}
+        resD[sampleId] = {'recs': [], 'values': []}
         recIter = 1
         resD[sampleId]['values'] = [subProjId, sampleId]
-        for outF in outFs :
+        for outF in outFs:
             recIter = process_res(subProjId, sampleId, outF, resD[sampleId]['recs'], recIter)
 
     fbed = open('brkpts.%s.bed' % sampleType, 'w')
-    for sid in resD :
-        for rec in resD[sid]['recs'] :
+    for sid in resD:
+        for rec in resD[sid]['recs']:
             rec.write_brkpt_bed(fbed)
     fbed.close()
 
     annoDictFs = run_bedtools('brkpts.%s.bed' % sampleType)
     annotate_recs(resD, annoDictFs)
 
-    if sampleType == "normal" :
-        for sid in resD :
-            for rec in resD[sid]['recs'] :
+    if sampleType == "normal":
+        for sid in resD:
+            for rec in resD[sid]['recs']:
                 descriptions = rec.svDescription
                 if rec.type.find("rearr") > -1:
                     descriptions = rec.format_trl_str()
                 filterList.filters.append(filter(rec.targetName, rec.type, descriptions))
     return resD
 
-if __name__ == "__main__" :
+if __name__ == "__main__":
     args = sys.argv[1:]
     projectId = args[0]
     tumorSamplesFn = args[1]
     normalSamplesFn = args[2]
 
     resultsDir = os.path.join('/data/ccgd/breakmer/ccgd_projects/', projectId + '_breakmer')
-
-#    sampleListFn = os.path.join(resultsDir, 'sample_list.txt')
     filterFn = os.path.join(resultsDir, 'filters.txt')
     filterList = filters(filterFn)
 
     resD = format_results(os.path.join(resultsDir, tumorSamplesFn), 'tumor', filterList)
-    if normalSamplesFn != '' :
+    if normalSamplesFn != '':
         normals = format_results(os.path.join(resultsDir, normalSamplesFn), 'normal', filterList)
 
-#    sampleListF = open(sampleListFn, 'rU')
     '''
     resD = {}
-    for line in sampleListF.readlines() :
+    for line in sampleListF.readlines():
         line = line.strip()
         subProjId, sampleId = line.split("\t")
         outFs = glob(jp(resultsDir, sampleId + '*svs.out'))
         resD[sampleId] = {'recs':[], 'values':[]}
         recIter = 1
         resD[sampleId]['values'] = [subProjId, sampleId]
-        for outF in outFs :
+        for outF in outFs:
             recIter = process_res(subProjId, sampleId, outF, resD[sampleId]['recs'], recIter)
 
     fbed = open('brkpts.bed', 'w')
-    for sid in resD :
-        for rec in resD[sid]['recs'] :
+    for sid in resD:
+        for rec in resD[sid]['recs']:
             rec.write_brkpt_bed(fbed)
     fbed.close()
 
@@ -757,12 +772,19 @@ if __name__ == "__main__" :
     circosLinkFn = '%s_circos_links.txt' % projectId
     circosAnnoFn = '%s_circos_annos.txt' % projectId
 
-    outFileDict = {'report':reportFn, 'df':dataFrameFn, 'filtered':filteredFn, 'sample':sampleSummaryFn, 'target':targetSummaryFn, 'link':circosLinkFn, 'anno':circosAnnoFn}
-    for f in outFileDict :
+    outFileDict = {'report': reportFn,
+                   'df': dataFrameFn,
+                   'filtered': filteredFn,
+                   # 'sample': sampleSummaryFn,
+                   # 'target': targetSummaryFn,
+                   'link': circosLinkFn,
+                   'anno': circosAnnoFn}
+
+    for f in outFileDict:
         outFileDict[f] = open(outFileDict[f], 'w')
 
     report(resD, outFileDict, filterList)
     report_df(resD, outFileDict['df'], filterList)
 
-    for f in outFileDict :
+    for f in outFileDict:
         outFileDict[f].close()
