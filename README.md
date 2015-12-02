@@ -1,7 +1,7 @@
 # BreaKmer_processing
 Scripts to process breakmer output and format it to report to collaborators
 
-process:
+process (in development):
 
 run link_breakmer_files.rcprime.py on the cohort of interest
 command: ./python link_breakmer_files.rcprime.py <projectID> <subprojectID>
