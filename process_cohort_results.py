@@ -650,9 +650,9 @@ def collapse_bed(targetBedFn):
 
 
 def run_bedtools(brkptBedFn):
-    cytoBandBedFn = '/data/ccgd/reference/human/refseq/GRCh37/annotation/bed/cytoBandIdeo.primary_chrs.bed'
-    geneAnnoBedFn = '/data/ccgd/reference/human/refseq/GRCh37/annotation/bed/refseq_refFlat.bed'
-    canonTrxAnnoBedFn = '/data/ccgd/reference/human/ensembl/GRCh37/annotation/bed/ensembl_GRCh37_canon_trx_anno.v75.primary_chrs.sorted.bed'
+    cytoBandBedFn = '/ifs/rcgroups/ccgd/reference/human/refseq/hg19/annotation/bed/cytoBandIdeo.primary_chrs.bed'
+    geneAnnoBedFn = '/ifs/rcgroups/ccgd/reference/human/refseq/hg19/annotation/bed/refseq_refFlat.bed'
+    canonTrxAnnoBedFn = '/ifs/rcgroups/ccgd/reference/human/ensembl/GRCh37/annotation/bed/ensembl_GRCh37_canon_trx_anno.v75.primary_chrs.sorted.bed'
     # targetBedFn = '/data/ccgd/breakmer/ccgd_projects/panel_beds/P50.bed'
     clusterRegionBedFn = '/ifs/rcgroups/ccgd/hg19/cluster_regions.bed'
     targetCollapsedBedFn = collapse_bed(targetBedFn)
