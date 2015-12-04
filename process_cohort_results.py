@@ -6,6 +6,7 @@ import sys
 from os.path import join as jp
 
 
+
 class filter():
     def __init__(self, targetName, svType, descriptions):
         self.name = targetName
@@ -455,6 +456,7 @@ def process_bed_anno(f, d, tag):
             metaVals[0] = linesplit[10]
         elif tag == 'cluster':
             metaVals[0] = '0'
+            print linesplit
             metaVals[1] = linesplit[11]
         elif tag.find('gene') > -1:
             metaVals[0] = int(linesplit[-1])
@@ -650,12 +652,13 @@ def collapse_bed(targetBedFn):
 
 
 def run_bedtools(brkptBedFn):
+    bedtools = '/ifs/rcgroups/ccgd/software/bedtools-2.17.0/bin/bedtools'
     cytoBandBedFn = '/ifs/rcgroups/ccgd/reference/human/refseq/hg19/annotation/bed/cytoBandIdeo.primary_chrs.bed'
     geneAnnoBedFn = '/ifs/rcgroups/ccgd/reference/human/refseq/hg19/annotation/bed/refseq_refFlat.bed'
     canonTrxAnnoBedFn = '/ifs/rcgroups/ccgd/reference/human/ensembl/GRCh37/annotation/bed/ensembl_GRCh37_canon_trx_anno.v75.primary_chrs.sorted.bed'
     # targetBedFn = '/data/ccgd/breakmer/ccgd_projects/panel_beds/P50.bed'
-    clusterRegionBedFn = '/ifs/rcgroups/ccgd/hg19/cluster_regions.bed'
-    targetCollapsedBedFn = collapse_bed(targetBedFn)
+    clusterRegionBedFn = '/ifs/rcgroups/ccgd/bmw35/BreaKmer_processing/cluster_regions.bed'
+    #targetCollapsedBedFn = collapse_bed(targetBedFn)
 
     # brkptTrgtAnno = 'brkpt_target_anno.bed'
     brkptGeneAnnoUp = 'brkpt_gene_anno_upstream.bed'
@@ -665,34 +668,34 @@ def run_bedtools(brkptBedFn):
     brkptExonAnnoIntersect = 'brkpt_exon_anno_intersect.bed'
     brkptClusterAnnoIntersect = 'brkpt_cluster_anno_intersect.bed'
 
-    annoDict = {'target': brkptTrgtAnno, 'gene_int': brkptGeneAnnoIntersect, 'gene_up': brkptGeneAnnoUp, 'gene_down': brkptGeneAnnoDown, 'cyto': brkptCytoBand, 'exon': brkptExonAnnoIntersect, 'cluster': brkptClusterAnnoIntersect}
+    annoDict = {'gene_int': brkptGeneAnnoIntersect, 'gene_up': brkptGeneAnnoUp, 'gene_down': brkptGeneAnnoDown, 'cyto': brkptCytoBand, 'exon': brkptExonAnnoIntersect, 'cluster': brkptClusterAnnoIntersect}
 
     # Identify segments that overlap the targeted regions
     # cmd = 'sort -k1,1 -k2,2n %s | bedtools intersect -wo -a - -b %s > %s' % (brkptBedFn, targetBedFn, 'brkpt_target_anno.bed')
     # os.system(cmd)
 
     # Intersect with gene annotation bed file
-    cmd = 'sort -k1,1 -k2,2n %s | bedtools intersect -wo -a - -b %s > %s' % (brkptBedFn, geneAnnoBedFn, 'brkpt_gene_anno_intersect.bed')
+    cmd = 'sort -k1,1 -k2,2n %s | %s  intersect -wo -a - -b %s > %s' % (brkptBedFn, bedtools,  geneAnnoBedFn, 'brkpt_gene_anno_intersect.bed')
     os.system(cmd)
 
     # Bedtools upstream genes
-    cmd = 'sort -k1,1 -k2,2n %s | bedtools closest -D a -id -a - -b %s > %s' % (brkptBedFn, geneAnnoBedFn, 'brkpt_gene_anno_upstream.bed')
+    cmd = 'sort -k1,1 -k2,2n %s | %s closest -D a -id -a - -b %s > %s' % (brkptBedFn, bedtools, geneAnnoBedFn, 'brkpt_gene_anno_upstream.bed')
     os.system(cmd)
 
     # Bedtools downstream genes
-    cmd = 'sort -k1,1 -k2,2n %s | bedtools closest -D a -iu -a - -b %s > %s' % (brkptBedFn, geneAnnoBedFn, 'brkpt_gene_anno_downstream.bed')
+    cmd = 'sort -k1,1 -k2,2n %s | %s closest -D a -iu -a - -b %s > %s' % (brkptBedFn, bedtools, geneAnnoBedFn, 'brkpt_gene_anno_downstream.bed')
     os.system(cmd)
 
     # Cytoband
-    cmd = 'sort -k1,1 -k2,2n %s | bedtools closest -a - -b %s > %s' % (brkptBedFn, cytoBandBedFn, 'brkpt_cytoband_anno.bed')
+    cmd = 'sort -k1,1 -k2,2n %s | %s closest -a - -b %s > %s' % (brkptBedFn, bedtools, cytoBandBedFn, 'brkpt_cytoband_anno.bed')
     os.system(cmd)
 
     # Cluster regions
-    cmd = 'sort -k1,1 -k2,2n %s | bedtools intersect -wo -a - -b %s > %s' % (brkptBedFn, clusterRegionBedFn, 'brkpt_cluster_anno_intersect.bed')
+    cmd = 'sort -k1,1 -k2,2n %s | %s intersect -wo -a - -b %s > %s' % (brkptBedFn, bedtools, clusterRegionBedFn, 'brkpt_cluster_anno_intersect.bed')
     os.system(cmd)
 
     # Intersect with Ensembl canonical trxs
-    cmd = 'sort -k1,1 -k2,2n %s | bedtools closest -D a -a - -b %s > %s' % (brkptBedFn, canonTrxAnnoBedFn, 'brkpt_exon_anno_intersect.bed')
+    cmd = 'sort -k1,1 -k2,2n %s | %s closest -D a -a - -b %s > %s' % (brkptBedFn, bedtools, canonTrxAnnoBedFn, 'brkpt_exon_anno_intersect.bed')
     os.system(cmd)
     return annoDict
 
@@ -733,7 +736,7 @@ if __name__ == "__main__":
     tumorSamplesFn = args[1]
     normalSamplesFn = args[2]
 
-    resultsDir = os.path.join('/data/ccgd/breakmer/ccgd_projects/', projectId + '_breakmer')
+    resultsDir = os.path.join('/ifs/rcgroups/ccgd/bmw35/analysis/breakmer/breakmer_reports/', projectId + '_breakmer')
     filterFn = os.path.join(resultsDir, 'filters.txt')
     filterList = filters(filterFn)
 

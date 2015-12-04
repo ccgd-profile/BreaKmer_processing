@@ -15,3 +15,7 @@ The process_cohort_results.py should point to this folder. Run it
 command: ./python process_cohort_results.py <projectID> <tumorsamplelist> <normalsamplelist>
 
 This produces the outputs
+
+filtered events section in the Summary tab:
+only mentioned events that are requested to be filtered out.
+Always mentioned Any events mapped to non-primary chromosomes (1-22,X,Y)

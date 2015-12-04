@@ -63,7 +63,7 @@ if __name__ == "__main__" :
     # targetPath = '/home/rpa4/SGT0023_P50-NSCLC_breakmer'
 
     projectPath = os.path.join('/ifs/rcgroups/ccgd/Illumina/pipeline_riker/Project', projectId)
-    targetPath = os.path.join('/ifs/rcgroups/ccgd/rpa4/analysis/breakmer/breakmer_reports/', projectId + '_breakmer')
+    targetPath = os.path.join('/ifs/rcgroups/ccgd/bmw35/analysis/breakmer/breakmer_reports/', projectId + '_breakmer')
     sampleFn = os.path.join(targetPath, subProjectId + '_sample_list.txt')
 
     subProjectIds = [subProjectId]
